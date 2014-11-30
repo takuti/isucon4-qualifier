@@ -111,17 +111,17 @@ function attempt_login($login, $password) {
     return ['error' => 'locked'];
   }
 
-  if (!empty($user) && calculate_password_hash($password, $user['salt']) == $user['password_hash']) {
-    login_log(true, $login, $user['id']);
-    return ['user' => $user];
-  }
-  elseif (!empty($user)) {
-    login_log(false, $login, $user['id']);
-    return ['error' => 'wrong_password'];
-  }
-  else {
+  if (empty($user)) {
     login_log(false, $login);
     return ['error' => 'wrong_login'];
+  }
+
+  if (calculate_password_hash($password, $user['salt']) == $user['password_hash']) {
+    login_log(true, $login, $user['id']);
+    return ['user' => $user];
+  } else {
+    login_log(false, $login, $user['id']);
+    return ['error' => 'wrong_password'];
   }
 }
 
