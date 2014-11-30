@@ -172,9 +172,17 @@ function banned_ips() {
   $not_succeeded = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
   $ips = array_merge($not_succeeded);
 
+  $stmt = $db->prepare('SELECT ip, COUNT(1) AS cnt FROM login_log WHERE succeeded = 0 GROUP BY ip HAVING cnt >= :threshold');
+  $stmt->bindValue(':threshold', $threshold);
+  $stmt->execute();
+  $threshold_failures = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+  $considered_ips = array_merge($threshold_failures);
+  $considered_ips = array_diff($considered_ips, $ips);
+
   $last_succeeds = $db->query('SELECT ip, MAX(id) AS last_login_id FROM login_log WHERE succeeded = 1 GROUP by ip');
 
   foreach ($last_succeeds as $row) {
+    if (!in_array($row['ip'], $considered_ips)) { continue; }
     $stmt = $db->prepare('SELECT COUNT(1) AS cnt FROM login_log WHERE ip = :ip AND :id < id');
     $stmt->bindValue(':ip', $row['ip']);
     $stmt->bindValue(':id', $row['last_login_id']);
@@ -200,9 +208,17 @@ function locked_users() {
   $not_succeeded = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
   $user_ids = array_merge($not_succeeded);
 
+  $stmt = $db->prepare('SELECT user_id, COUNT(1) AS cnt FROM login_log WHERE user_id IS NOT NULL AND succeeded = 0 GROUP BY user_id HAVING cnt >= :threshold');
+  $stmt->bindValue(':threshold', $threshold);
+  $stmt->execute();
+  $threshold_failures = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+  $considered_ids = array_merge($threshold_failures);
+  $considered_ids = array_diff($considered_ids, $user_ids);
+
   $last_succeeds = $db->query('SELECT user_id, login, MAX(id) AS last_login_id FROM login_log WHERE user_id IS NOT NULL AND succeeded = 1 GROUP BY user_id');
 
   foreach ($last_succeeds as $row) {
+    if (!in_array($row['user_id'], $considered_ids)) { continue; }
     $stmt = $db->prepare('SELECT COUNT(1) AS cnt FROM login_log WHERE user_id = :user_id AND :id < id');
     $stmt->bindValue(':user_id', $row['user_id']);
     $stmt->bindValue(':id', $row['last_login_id']);
