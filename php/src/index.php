@@ -65,26 +65,41 @@ function login_log($succeeded, $login, $user_id=null) {
 function user_locked($user) {
   if (empty($user)) { return null; }
 
-  $db = option('db_conn');
-  $stmt = $db->prepare('SELECT COUNT(1) AS failures FROM login_log WHERE user_id = :user_id AND id > IFNULL((select MAX(id) from login_log where user_id = :user_id AND succeeded = 1), 0)');
-  $stmt->bindValue(':user_id', $user['id']);
-  $stmt->execute();
-  $log = $stmt->fetch(PDO::FETCH_ASSOC);
-
   $config = option('config');
-  return $config['user_lock_threshold'] <= $log['failures'];
+
+  $db = option('db_conn');
+  $stmt = $db->prepare('SELECT succeeded FROM login_log WHERE user_id = :user_id ORDER BY id DESC LIMIT :threshold');
+  $stmt->bindValue(':user_id', $user['id']);
+  $stmt->bindValue(':threshold', $config['user_lock_threshold'], PDO::PARAM_INT);
+  $stmt->execute();
+  $log = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+  $succeeds = array_merge($log);
+
+  if (count($succeeds) < $config['user_lock_threshold']) {
+    return false;
+  } else {
+    return !in_array('1', $succeeds);
+  }
 }
 
 # FIXME
 function ip_banned() {
   $db = option('db_conn');
-  $stmt = $db->prepare('SELECT COUNT(1) AS failures FROM login_log WHERE ip = :ip AND id > IFNULL((select MAX(id) from login_log where ip = :ip AND succeeded = 1), 0)');
-  $stmt->bindValue(':ip', $_SERVER['REMOTE_ADDR']);
-  $stmt->execute();
-  $log = $stmt->fetch(PDO::FETCH_ASSOC);
 
   $config = option('config');
-  return $config['ip_ban_threshold'] <= $log['failures'];
+
+  $stmt = $db->prepare('SELECT succeeded FROM login_log WHERE ip = :ip ORDER BY id DESC LIMIT :threshold');
+  $stmt->bindValue(':ip', $_SERVER['REMOTE_ADDR']);
+  $stmt->bindValue(':threshold', $config['ip_ban_threshold'], PDO::PARAM_INT);
+  $stmt->execute();
+  $log = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+  $succeeds = array_merge($log);
+
+  if (count($succeeds) < $config['ip_ban_threshold']) {
+    return false;
+  } else {
+    return !in_array('1', $succeeds);
+  }
 }
 
 function attempt_login($login, $password) {
