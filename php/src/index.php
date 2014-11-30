@@ -88,6 +88,12 @@ function ip_banned() {
 }
 
 function attempt_login($login, $password) {
+  # loginname must be alphanumeric
+  if (!preg_match('/\A[\w\.]+\z/', $login)) {
+    login_log(false, $login, null);
+    return ['error' => 'wrong_login'];
+  }
+
   $db = option('db_conn');
 
   $stmt = $db->prepare('SELECT * FROM users WHERE login = :login');
