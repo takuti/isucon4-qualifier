@@ -172,8 +172,7 @@ function banned_ips() {
   $not_succeeded = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
   $ips = array_merge($not_succeeded);
 
-  $stmt = $db->query('SELECT ip, MAX(id) AS last_login_id FROM login_log WHERE succeeded = 1 GROUP by ip');
-  $last_succeeds = $stmt->fetchAll();
+  $last_succeeds = $db->query('SELECT ip, MAX(id) AS last_login_id FROM login_log WHERE succeeded = 1 GROUP by ip');
 
   foreach ($last_succeeds as $row) {
     $stmt = $db->prepare('SELECT COUNT(1) AS cnt FROM login_log WHERE ip = :ip AND :id < id');
@@ -201,8 +200,7 @@ function locked_users() {
   $not_succeeded = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
   $user_ids = array_merge($not_succeeded);
 
-  $stmt = $db->query('SELECT user_id, login, MAX(id) AS last_login_id FROM login_log WHERE user_id IS NOT NULL AND succeeded = 1 GROUP BY user_id');
-  $last_succeeds = $stmt->fetchAll();
+  $last_succeeds = $db->query('SELECT user_id, login, MAX(id) AS last_login_id FROM login_log WHERE user_id IS NOT NULL AND succeeded = 1 GROUP BY user_id');
 
   foreach ($last_succeeds as $row) {
     $stmt = $db->prepare('SELECT COUNT(1) AS cnt FROM login_log WHERE user_id = :user_id AND :id < id');
