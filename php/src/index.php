@@ -166,7 +166,7 @@ function banned_ips() {
 
   $db = option('db_conn');
 
-  $stmt = $db->prepare('SELECT ip FROM (SELECT ip, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY ip) AS t0 WHERE t0.max_succeeded = 0 AND t0.cnt >= :threshold');
+  $stmt = $db->prepare('SELECT ip, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY ip HAVING max_succeeded = 0 AND cnt >= :threshold');
   $stmt->bindValue(':threshold', $threshold);
   $stmt->execute();
   $not_succeeded = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
@@ -202,7 +202,7 @@ function locked_users() {
 
   $db = option('db_conn');
 
-  $stmt = $db->prepare('SELECT login FROM (SELECT user_id, login, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY user_id) AS t0 WHERE t0.user_id IS NOT NULL AND t0.max_succeeded = 0 AND t0.cnt >= :threshold');
+  $stmt = $db->prepare('SELECT login, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log WHERE user_id IS NOT NULL GROUP BY user_id HAVING max_succeeded = 0 AND cnt >= :threshold');
   $stmt->bindValue(':threshold', $threshold);
   $stmt->execute();
   $not_succeeded = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
